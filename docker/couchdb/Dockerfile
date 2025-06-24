@@ -1,3 +1,4 @@
+FROM cmssw/filebeat:latest as filebeat
 FROM couchdb:3.2.2
 MAINTAINER Valentin Kuznetsov vkuznet@gmail.com
 
@@ -24,9 +25,10 @@ RUN mkdir -p $WDIR
 WORKDIR ${WDIR}
 
 # get binary build of couchdb exporter
-RUN curl -ksLO https://github.com/gesellix/couchdb-prometheus-exporter/releases/download/v27.0.0/couchdb-prometheus-exporter_27.0.0_Linux_x86_64.tar.gz
-RUN tar xfz couchdb-prometheus-exporter_27.0.0_Linux_x86_64.tar.gz
-RUN rm couchdb-prometheus-exporter_27.0.0_Linux_x86_64.tar.gz LICENSE README*.md
+ARG VER=30.14.0
+RUN curl -ksLO https://github.com/gesellix/couchdb-prometheus-exporter/releases/download/v${VER}/couchdb-prometheus-exporter_${VER}_Linux_x86_64.tar.gz
+RUN tar xfz couchdb-prometheus-exporter_${VER}_Linux_x86_64.tar.gz
+RUN rm couchdb-prometheus-exporter_${VER}_Linux_x86_64.tar.gz LICENSE README*.md
 ENV PATH="${WDIR}:${PATH}"
 
 # add necessary scripts
@@ -46,6 +48,10 @@ RUN mkdir -p /data/srv/current/config/couchdb \
 ADD manage /data/srv/current/config/couchdb/manage
 
 ENV PATH="/opt/couchdb/bin:/usr/local/bin/:${PATH}"
+
+# copy exporters
+COPY --from=filebeat /usr/share/filebeat /usr/share/filebeat
+COPY --from=filebeat /usr/bin/filebeat /usr/bin/filebeat
 
 # setup final environment
 USER $USER
